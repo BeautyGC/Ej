@@ -1,0 +1,198 @@
+ 
+<div id="category">
+<!-- 按钮 -->
+	<div class="btns">
+		<button class="button btn-info btn-sm" id="btn_add">添加</button>
+		<button class="button btn-danger btn-sm" id="btn_batchDel">批量删除</button>
+	</div>
+<!-- 表格 -->
+<div class="table_content">
+	<table class="table table-hover table-sm table-bordered text-center">
+		<thead>
+			<tr>
+				<th><input type="checkbox" name=""></th>
+				<th>种类</th>
+				<th>数量</th>
+				<th>父Id</th>
+				<th>操作</th>
+			</tr>
+			<tbody>
+				
+			</tbody>
+		</thead>
+	</table>
+</div>
+</div>
+<!-- script -->
+<script>
+	var baseURL = "http://134.175.100.63:6677";
+	//该id是点击修改按钮时获取的id设置为全局变量
+	var EditId;
+	// 封装加载数据函数
+	function loadData(){
+		//每次加载数据前 先清空body中的数据
+		$(".table_content tbody").empty();
+		var url = baseURL+"/category/findAll";
+		$.get(url,function(result){
+			// console.log(result);
+			result.data.forEach(function(item){
+				var newTr = $(`<tr>
+					<td><input type="checkbox" value="`+item.id+`"/></td>
+					<td>`+item.name+`</td>
+					<td>`+item.num+`</td>
+					<td>`+item.parentId+`</td>
+					<td>
+						<i class='iconfont icon-edit' id='edit'></i>
+						<i class='iconfont icon-shanchu' id='del'></i>
+				    </td>
+				</tr>
+					`);
+				$("tbody").append(newTr);
+			})
+		})
+		
+	}
+	//当文档加载完毕后
+	$(function(){
+		loadData();
+		//点击添加按钮弹出模态框
+		$("#btn_add").click(function(){
+			$(".modal").modal("show");
+		})
+
+		// 监听模态框的关闭，清空模态框内容
+		$('.modal').on('hidden.bs.modal', function(e){
+		  $(this).find('form')[0].reset();
+		})
+		// 封装关闭模态框函数
+		 // function closeModal(){
+		 //   $(".modal").modal("hide");
+		 // }
+		//为保存按钮添加保存或者修改事件
+		$("#btn_addCategory").click(function(){
+
+			var name = $("#input_realname").val();
+			var num = $("#input_num").val();
+			var parentId = $("#input_parentId").val();
+			if (EditId) {
+				//id存在即是修改
+				var data = {
+					id:EditId,
+					name:name,
+					num:num,
+					parentId:parentId,
+
+				}
+				var url = baseURL+"/category/saveOrUpdate";
+				$.post(url,data,function(result){
+					loadData();
+				})
+				//将id置为空,否则点击修改后再次添加还是修改
+					EditId ="";
+					$(".Modal").modal("hide");
+
+			}else{
+				var data = {
+				name:name,
+				num:num,
+				parentId:parentId,
+				};
+				var url = baseURL +"/category/saveOrUpdate";
+				$.post(url,data,function(result){
+					loadData();
+				})
+				$(".modal").modal("hide");
+			}
+		})
+		//批量删除
+		$('#btn_batchDel').click(function(){
+				var url = baseURL+'/category/batchDelete';
+				var ids = $('input[type=checkbox]:checked').map(function(index,item){
+					return $(item).val();
+				}).toArray();
+				var data = '';
+				for(index in ids){
+					if(index == 0){
+						data += 'ids='+ids[index]
+					}else{
+						data +='&ids='+ids[index]
+					}
+				}
+				$.post(url,data,function(result){
+					 // console.log(result);
+					loadData();
+				})
+			})
+		//为删除和修改按钮添加事件
+		$("tbody").on("click","i",function(){
+			switch(this.id){
+				//修改
+				case "edit":
+				//打开模态框
+				$(".modal").modal("show");
+				//获取值并修改值
+				EditId = $(this).parents("tr").find('td').find("input").val();
+				var name = $(this).parents("tr").find("td:nth-child(2)").text();
+				var num = $(this).parents("tr").find("td:nth-child(3)").text();
+				var parentId = $(this).parents("tr").find("td:nth-child(4)").text();
+				$("#input_realname").val(name);
+				$("#input_num").val(num);
+				$("#input_parentId").val(parentId);
+				break;
+				case "del":
+				var url = baseURL +"/category/deleteById";
+				var id = $(this).parents("tr").find("input[type=checkbox]").val();
+				var data ={
+					id:id
+				}
+				$.get(url,data,function(result){
+					if (result.status ===200) {
+						alert("删除成功");
+						loadData();
+					}else{
+						alert("接口异常")
+					}
+				})
+
+
+			}
+		})
+
+	})
+</script>
+<!-- 模态框 -->
+<div class="modal" tabindex="-1" role="dialog" id="category">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">添加种类</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <!-- form表单 -->
+        <form>
+		  <div class="form-group">
+		    <label for="input_realname">种类名称</label>
+		    <input type="text" class="form-control" id="input_realname"  placeholder="请输入名称">
+		   
+		  </div>
+		  <div class="form-group">
+		    <label for="input_num">数量</label>
+		    <input type="text" class="form-control" id="input_num" placeholder="请输入数量">
+		  </div>
+		   <div class="form-group">
+		    <label for="parentId">父Id</label>
+		    <input type="text" class="form-control" id="parentId" placeholder="请输入父id">
+		  </div>
+		 
+		</form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"  id="btn_none">取消</button>
+        <button type="button" class="btn btn-primary" id="btn_addCategory">保存</button>
+      </div>
+    </div>
+  </div>
+</div>

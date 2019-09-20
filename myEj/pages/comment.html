@@ -1,0 +1,192 @@
+ 
+<div id="comment">
+	<!-- 按钮 -->
+	<div class="btns">
+		<button class="button btn-info btn-sm btn" id="btn_add">添加</button>
+		<button class="button btn-danger btn-sm btn" id="btn_batchDel">批量删除</button>
+		
+	</div>
+	<div class="table_content">
+		<table class="table table-hover table-sm table-bordered text-center">
+			<thead>
+				<tr>
+					<th><input type="checkbox" name=""></th>
+					<th>内容</th>
+					<th>评论时间</th>
+					<th>订单Id</th>
+					<th>操作</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+			</tbody>
+		</table>
+	</div>
+	<!-- script -->
+	<script>
+		var baseURL = "http://134.175.100.63:6677";
+		var EditId;
+		//封装加载数据函数
+		function loadData(){
+			$("tbody").empty();
+			var url = baseURL+"/comment/findAll";
+			$.get(url,function(result){
+				result.data.forEach(function(item){
+					var newTr = $(`<tr>
+								<td><input type="checkbox" value="`+item.id+`"/></td>
+								<td>`+item.content+`</td>
+								<td>`+item.commentTime+`</td>
+								<td>`+item.orderId+`</td>
+								<td>
+									<i class='iconfont icon-edit' id='edit'></i>
+						        <i class='iconfont icon-shanchu' id='del'></i>
+								</td>
+							</tr>`);
+					$("tbody").append(newTr);
+				})
+			})
+		}
+		//当文档加载完毕后
+		$(function(){
+			loadData();
+			//点击添加按钮 弹出模态框
+			$("#btn_add").click(function(){
+				$(".modal").modal("show");
+			})
+			// 监听模态框的关闭，清空模态框内容
+			$('.modal').on('hidden.bs.modal', function(e){
+			  $(this).find('form')[0].reset();
+			})
+			//批量删除
+			$('#btn_batchDel').click(function(){
+				var url = baseURL+'/comment/batchDelete';
+				var ids = $('input[type=checkbox]:checked').map(function(index,item){
+					return $(item).val();
+				}).toArray();
+				var data = '';
+				for(index in ids){
+					if(index == 0){
+						data += 'ids='+ids[index]
+					}else{
+						data +='&ids='+ids[index]
+					}
+				}
+				$.post(url,data,function(result){
+					 // console.log(result);
+					loadData();
+				})
+			})
+			//为保存按钮添加保存或者修改事件
+			$("#btn_addComment").click(function(){
+				var content =$("#input_content").val();
+				var commentTime = $("#input_commentTime").val();
+				var orderId = $("#input_orderId").val();
+				if (EditId) {
+					//修改
+					var data = {
+						id:EditId,
+						content:content,
+						commentTime:commentTime,
+						orderId:orderId,
+					}
+					var url = baseURL+"/comment/saveOrUpdate";
+					$.post(url,data,function(result){
+
+						loadData();
+					})
+					//将id置为空,否则点击修改后再次添加还是修改
+						EditId ="";
+					$(".Modal").modal("hide");
+
+
+				}else{
+					//保存
+					var data = {
+						content:content,
+						commentTime:commentTime,
+						orderId:orderId,
+					};
+					var url = baseURL +"/comment/saveOrUpdate";
+					$.post(url,data,function(result){
+						loadData();
+
+					})
+					$("#commentModal").modal("hide");
+
+				}
+			})
+			//为删除和修改按钮添加事件
+			$("tbody").on("click","i",function(){
+				switch(this.id){
+					//修改
+					case "edit":
+					//打开模态框
+					$(".modal").modal("show");
+					//获取值并修改值
+					EditId = $(this).parents("tr").find("td").find("input").val();
+					var content = $(this).parents("tr").find("td:nth-child(2)").text();
+					var commentTime = $(this).parents("tr").find("td:nth-child(3)").text();
+					var orderId= $(this).parents("tr").find("td:nth-child(4)").text();
+					$("#input_content").val(content);
+					$("#input_commentTime").val(commentTime);
+					$("#input_orderId").val(orderId);
+
+
+					break;
+					//删除
+					case "del":
+					var url = baseURL +"/comment/deleteById";
+					var id = $(this).parents("tr").find("input[type=checkbox]").val();
+					var data = {
+						id:id
+					}
+					$.get(url,data,function(result){
+						if (result.status === 200) {
+							alert("删除成功")
+							loadData();
+						}else{
+							alert("error")
+						}
+					})
+					break;
+				}
+			})
+		})
+	</script>
+	<!-- 模态框 -->
+	<div class="modal" tabindex="-1" role="dialog" id="commentModal">
+   <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">添加评论</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <!-- form表单 -->
+        <form>
+		  <div class="form-group">
+		    <label for="input_content">内容</label>
+		    <input type="text" class="form-control" id="input_content"  placeholder="请输入内容">
+		   
+		  </div>
+		  <div class="form-group">
+		    <label for="input_commentTime">时间</label>
+		    <input type="text" class="form-control" id="input_commentTime" placeholder="请输入时间">
+		  </div>
+		   <div class="form-group">
+		    <label for="input_input_orderId">订单Id</label>
+		    <input type="text" class="form-control" id="input_orderId" placeholder="请输入订单id">
+		  </div>
+		 
+		</form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"  id="btn_none">取消</button>
+        <button type="button" class="btn btn-primary" id="btn_addComment">保存</button>
+      </div>
+    </div>
+  </div>
+
+</div>

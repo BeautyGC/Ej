@@ -1,0 +1,231 @@
+<!-- <link href="https://at.alicdn.com/t/font_1411447_zhf55y3egs.css" rel="stylesheet">
+	<link href="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script> -->
+	<style>
+		.table-content{
+			margin-top: 20px;
+		}
+	</style>
+<div id="product">
+<!-- 按钮 -->
+	<div class="btns">
+		<button class="button btn-info btn-sm" id="btn_add">添加</button>
+		<button class="button btn-danger btn-sm" id="btn_batchDel">批量删除</button>
+		
+	</div>
+<!-- 表格 -->
+	<div class="table-content" >
+		<table class="table table-hover table-sm table-bordered text-center">
+			<thead>
+				<tr>
+					<th><input type="checkbox" name=""></th>
+					<th>名称</th>
+					<th>描述</th>
+					<th>价格</th>
+					<th>状态</th>
+					<th>照片</th>
+					<th>栏目id</th>
+					<th>操作</th>
+				</tr>
+			</thead>
+			<tbody>
+				
+			</tbody>
+		</table>
+	</div>
+	<!-- script -->
+	<script>
+		var baseURL = "http://134.175.100.63:6677";
+		//该id是点击修改按钮时获取的id设置为全局变量
+		var EditId;
+		//封装加载数据函数
+		function loadData(){
+			//加载数据前 先清空body中的数据
+			$("tbody").empty();
+			var url = baseURL +"/product/findAll";
+			$.get(url,function(result){
+				result.data.forEach(function(item){
+					var newTr = $(`<tr>
+							<td ><input type="checkbox" value="`+item.id+`"/></td>
+							<td>`+item.name+`</td>
+							<td>`+item.description+`</td>
+							<td>`+item.price+`</td>
+							<td>`+item.status+`</td>
+							<td>`+item.photo+`</td>
+							<td>`+item.categoryId+`</td>
+							<td>
+								<i class='iconfont icon-edit' id='edit'></i>
+						<i class='iconfont icon-shanchu' id='del'></i>
+							</td>
+						</tr>`);
+				$("tbody").append(newTr);
+				})
+			})
+		}
+		//当文档加载完毕后
+		$(function(){
+			loadData();
+			//为添加或者修改按钮保存事件
+			//点击添加模态框出现
+			$("#btn_add").click(function(){
+				$(".modal").modal("show");
+			})
+			// 监听模态框的关闭，清空模态框内容
+			$('.modal').on('hidden.bs.modal', function(e){
+			  $(this).find('form')[0].reset();
+			})
+			$("#btn_addProduct").click(function(){
+				var name = $("#input_realname").val();
+				var description = $("#input_description").val();
+				var price = $("#input_price").val();
+				var photo = $("#input_photo").val();
+				var categoryId=$("#input_categoryId").val();
+				if (EditId) {
+					//修改
+					var data = {
+						id:EditId,
+						name:name,
+						description:description,
+						price:price,
+						photo:photo,
+						categoryId:categoryId,
+					}
+					var url = baseURL+"/product/saveOrUpdate";
+					$.post(url,data,function(){
+						loadData();
+					})
+					//将id置为空,否则点击修改后再次添加还是修改
+					EditId ="";
+					$(".Modal").modal("hide");
+
+				}else{
+					//添加
+					var data = {
+						name:name,
+						description:description,
+						price:price,
+						photo:photo,
+						categoryId:categoryId,
+					}
+					var url = baseURL +"/product/saveOrUpdate";
+					$.post(url,data,function(result){
+						loadData();
+					});
+					$(".modal").modal("hide");
+				}
+
+			})
+			//批量删除
+				 
+			$('#btn_batchDel').click(function(){
+				var url = baseURL+'/product/batchDelete';
+				var ids = $('input[type=checkbox]:checked').map(function(index,item){
+					return $(item).val();
+				}).toArray();
+				var data = '';
+				for(index in ids){
+					if(index == 0){
+						data += 'ids='+ids[index]
+					}else{
+						data +='&ids='+ids[index]
+					}
+				}
+				$.post(url,data,function(result){
+					 // console.log(result);
+					loadData();
+				})
+			})
+			//为删除或者修改按钮绑定事件
+			$("tbody").on("click","i",function(){
+				switch(this.id){
+					case "edit":
+					//打开模态框
+					$(".modal").modal("show");
+					//获取并修改值
+					EditId = $(this).parents("tr").find("td").find("input").val();
+					var name = $(this).parents("tr").find("td:nth-child(2)").text();
+
+
+					var description = $(this).parents("tr").find("td:nth-child(3)").text();
+					var price = $(this).parents("tr").find("td:nth-child(4)").text();
+					var photo = $(this).parents("tr").find("td:nth-child(5)").text();
+					 
+					var categoryId = $(this).parents("tr").find("td:nth-child(6)").text();
+					 $("#input_realname").val(name);
+					 $("#input_description").val(description);
+					 $("#input_price").val(price);
+					 $("#input_photo").val(photo);
+					 $("#input_categoryId").val(categoryId);
+					 
+					break;
+					case "del":
+					var url = baseURL +"/product/deleteById";
+					var id = $(this).parents("tr").find("input[type=checkbox]").val();
+					var data = {
+						id:id
+					}
+					$.get(url,data,function(result){
+						if(result.status === 200){
+							alert("删除成功");
+							loadData();
+
+
+						}else{
+							alert("接口异常");
+						}
+					})
+
+					break;
+				}
+			})
+
+
+
+		})
+
+	</script>
+	<!-- 模态框 -->
+	<div class="modal" tabindex="-1" role="dialog" id="product">
+   <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">添加产品</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <!-- form表单 -->
+        <form>
+		  <div class="form-group">
+		    <label for="input_realname">产品名称</label>
+		    <input type="text" class="form-control" id="input_realname"  placeholder="请输入名称">
+		   
+		  </div>
+		  <div class="form-group">
+		    <label for="input_description">产品描述</label>
+		    <input type="text" class="form-control" id="input_description" placeholder="请描述该产品">
+		  </div>
+		   <div class="form-group">
+		    <label for="input_price">产品价格</label>
+		    <input type="text" class="form-control" id="input_price" placeholder="请写出该产品价格">
+		  </div>
+		   <div class="form-group">
+		    <label for="input_photo">产品照片</label>
+		    <input type="text" class="form-control" id="input_photo" placeholder="请上传该产品照片">
+		  </div>
+		  <div class="form-group">
+		    <label for="input_categoryId">栏目Id</label>
+		    <input type="text" class="form-control" id="input_categoryId" placeholder="请选择栏目id">
+		  </div>
+		</form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"  id="btn_none">取消</button>
+        <button type="button" class="btn btn-primary" id="btn_addProduct">保存</button>
+      </div>
+    </div>
+  </div>
+
+</div>
